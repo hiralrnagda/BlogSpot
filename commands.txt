@@ -1,0 +1,237 @@
+pip install Flask --user
+pip install flast-wtf --user -----> this is for form validation
+
+for cookies we need app.config('SECRET_KEY') = has to random for that following on cmd
+python
+Python 3.8.2 (tags/v3.8.2:7b3ab59, Feb 25 2020, 23:03:10) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import secrets
+>>> secrets.token_hex(16)
+'75ff0f65675326247a54a04d439073c4'
+>>>
+
+for database we will be using flask_sqlalchemy SQLite database for development and later for production we will switch to postgre
+
+after writing classes for database we will go on cmd and type 
+python
+Python 3.8.2 (tags/v3.8.2:7b3ab59, Feb 25 2020, 23:03:10) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from flaskblog import db
+C:\Users\a\AppData\Roaming\Python\Python38\site-packages\flask_sqlalchemy\__init__.py:833: FSADeprecationWarning: SQLALCHEMY_TRACK_MODIFICATIONS adds significant overhead and will be disabled by default in the future.  Set it to True or False to suppress this warning.
+  warnings.warn(FSADeprecationWarning(
+>>> db.create_all()
+>>> 
+
+after that we have site.db created in same folder
+
+from flaskblog import User, Post
+>>> user_1 = User(username='Casey',email='casey@gmail.com',password= 'password')
+>>> db.session.add(user_1)
+>>> user_2 = User(username='John',email='john@gmail.com',password= 'password')
+>>> db.session.add(user_2)
+>>> db.session.commit()
+>>> User.query.all()
+[User('Casey','casey@gmail.com','default.jpg'), User('John','john@gmail.com','default.jpg')]
+>>> User.query.first() 
+User('Casey','casey@gmail.com','default.jpg')
+>>> User.query.filter_by(username='Casey').all()
+[User('Casey','casey@gmail.com','default.jpg')]
+>>> User.query.filter_by(username='Casey').first() 
+User('Casey','casey@gmail.com','default.jpg')
+>>> user =  User.query.filter_by(username='Casey').first()
+>>> user.id
+1   
+>>> user
+User('Casey','casey@gmail.com','default.jpg')
+>>> user = User.query.get(1)
+>>> user
+User('Casey','casey@gmail.com','default.jpg')
+>>> user.posts 
+[]
+>>> post_1 = Post(title = 'Blog 1', content = 'First Post Content!', user_id = user.id)    
+>>> post_2 = Post(title = 'Blog 2', content = 'Second Post Content!!!', user_id = user.id) 
+>>> db.session.add(post_1)
+>>> db.session.add(post_2) 
+>>> db.session.commit()
+>>> user.posts
+[Post('Blog 1','2021-01-10 16:47:37.029850'), Post('Blog 2','2021-01-10 16:47:37.031850')]
+>>> for post in user.posts:
+...     print(post.title)
+... 
+Blog 1
+Blog 2
+>>> post = Post.query.first()
+>>> post
+Post('Blog 1','2021-01-10 16:47:37.029850')
+>>> post.user_id
+1
+>>> post.author     ###use of backref that we put while making 1:m relation between tables
+User('Casey','casey@gmail.com','default.jpg')
+>>>db.drop_all()
+>>> db.create_all()
+>>> User.query.all()
+[]
+>>> Post.query.all()
+[]
+>>>exit()
+
+for now we will create database tables into models
+on cmd:
+python flaskblog.py
+Traceback (most recent call last):
+  File "flaskblog.py", line 4, in <module>
+    from models import User, Post
+  File "C:\Users\a\Desktop\flask_tutorial\blog_post\models.py", line 1, in <module>
+    from flaskblog import db
+  File "C:\Users\a\Desktop\flask_tutorial\blog_post\flaskblog.py", line 4, in <module>
+    from models import User, Post
+ImportError: cannot import name 'User' from partially initialized module 'models' (most likely due to a circular import) (C:\Users\a\Desktop\flask_tutorial\blog_post\models.py)
+
+WHY this error was thrown on User?????
+it fails bcz --- from flaskblog import db in models.py file ---its like a deadlock
+
+to deal with error we need to create a package 
+first create a folder named flaskblog in the same directory and create __init__.py file in it
+then cut models.py forms.py , static and templates folder and paste it into flaskblog folder
+then cut all imposts and app.config initialises and paste it into __init__.py file
+then create routes.py file in flaskblog folder and cut and paste all route related info in it except app.run()
+then rename flaskblog.py to run.py
+now simply write ---- from flaskblog import app ---- in run.py#now this will work as app is present in __init__.py file
+
+for ser authentication
+pip install flask-bcrypt --user
+then on cmd:
+PS C:\Users\a\Desktop\flask_tutorial\blog_post> python
+Python 3.8.2 (tags/v3.8.2:7b3ab59, Feb 25 2020, 23:03:10) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from flask_bcrypt import Bcrypt 
+>>> bcrypt = Bcrypt()
+>>> bcrypt.generate_password_hash('testing')
+b'$2b$12$z4fInYcrYhMi2Qy4/RjV7OQNoAA1d/.H0xzD2QX0qUgmdNu817URq'
+>>> bcrypt.generate_password_hash('testing').decode('utf-8')
+'$2b$12$i7iiyR.bSBP5z/5l2/8I0eDuqXAcMl3hJSXVCSlEdFE0NtmTCEWB6'
+>>> bcrypt.generate_password_hash('testing').decode('utf-8')
+'$2b$12$epM7ZDknFXSZGRieL2U4V.0vOK8u.uMryOoAeY.Lq3QNv5ARmsoM6'
+>>> hashed_pw =  bcrypt.generate_password_hash('testing').decode('utf-8')
+>>> bcrypt.check_password_hash(hashed_pw, 'password')
+False
+>>> bcrypt.check_password_hash(hashed_pw, 'testing')  
+True
+>>> exit()
+
+in __init__.py file import Bcrypt
+
+python
+Python 3.8.2 (tags/v3.8.2:7b3ab59, Feb 25 2020, 23:03:10) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from flaskblog import db
+C:\Users\a\AppData\Roaming\Python\Python38\site-packages\flask_sqlalchemy\__init__.py:833: FSADeprecationWarning: SQLALCHEMY_TRACK_MODIFICATIONS adds significant overhead and will be disabled by default in the future.  Set it to True or False to suppress this warning.
+  warnings.warn(FSADeprecationWarning(
+>>> from flaskblog.models import User
+>>> user = User.query.first()
+>>> user
+User('Hiral','hiral@gmail.com','default.jpg')
+>>> user.password
+'$2b$12$tajkD8Rmvvhb496nvmDbW.efg4psWcq13py5aMqLVsEgZKuC6C0vC'
+
+for good login system:
+pip install flask-login --user
+
+
+pagination
+python
+Python 3.8.2 (tags/v3.8.2:7b3ab59, Feb 25 2020, 23:03:10) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from flaskblog.models import Post
+C:\Users\a\AppData\Roaming\Python\Python38\site-packages\flask_sqlalchemy\__init__.py:833: FSADeprecationWarning: SQLALCHEMY_TRACK_MODIFICATIONS adds significant overhead and will be disabled by default in the future.  Set it to True or False to suppress this warning.
+  warnings.warn(FSADeprecationWarning(
+>>> post = Post.query.all()
+>>> post
+[Post('My First Post','2021-01-13 17:15:18.008862'), Post('A second post','2021-01-13 17:27:38.005256'), Post('Top 5 Programming Languages','2021-01-16 16:05:18.479117'), Post('Best Python IDEs','2021-01-16 16:05:55.722933'), Post('These Beers Will Improve Your Programming','2021-01-16 16:06:28.122823'), Post('Flask vs Django - Which Is Better?','2021-01-16 16:08:10.696403'), Post('You Won't Believe These Clickbait Titles!','2021-01-16 16:08:38.070613'), Post('Best Programmers Throughout History','2021-01-16 16:09:10.434044')]
+>>> post = Post.query.paginate()
+>>> post
+<flask_sqlalchemy.Pagination object at 0x000001BA7712F880>
+>>> dir(post)
+['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 'has_next', 'has_prev', 'items', 'iter_pages', 'next', 'next_num', 'page', 'pages', 'per_page', 'prev', 'prev_num', 'query', 'total']
+>>> post.per_page
+20  
+>>> posts.page
+Traceback (most recent call last):    
+  File "<stdin>", line 1, in <module> 
+NameError: name 'posts' is not defined
+>>> post.page  
+1   
+>>> for post in post.items:
+...     print(post)
+... 
+Post('My First Post','2021-01-13 17:15:18.008862')
+Post('A second post','2021-01-13 17:27:38.005256')
+Post('Top 5 Programming Languages','2021-01-16 16:05:18.479117')
+Post('Best Python IDEs','2021-01-16 16:05:55.722933')
+Post('These Beers Will Improve Your Programming','2021-01-16 16:06:28.122823')
+Post('Flask vs Django - Which Is Better?','2021-01-16 16:08:10.696403')
+Post('You Won't Believe These Clickbait Titles!','2021-01-16 16:08:38.070613')
+Post('Best Programmers Throughout History','2021-01-16 16:09:10.434044')
+>>> post = Post.query.paginate(per_page=2)
+>>> post.page
+1
+>>> for post in post.items:                
+...     print(post)
+... 
+Post('My First Post','2021-01-13 17:15:18.008862')
+Post('A second post','2021-01-13 17:27:38.005256')
+>>> post = Post.query.paginate(per_page=2,page=2) 
+>>> post
+<flask_sqlalchemy.Pagination object at 0x000001BA76F6B7F0>
+>>> for post in post.items:
+...     print(post)
+... 
+Post('Top 5 Programming Languages','2021-01-16 16:05:18.479117')
+Post('Best Python IDEs','2021-01-16 16:05:55.722933')
+
+to check inbrowser before making UI 
+http://127.0.0.1:5000/?page=2
+
+python
+Python 3.8.2 (tags/v3.8.2:7b3ab59, Feb 25 2020, 23:03:10) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from flaskblog.models import Post
+C:\Users\a\AppData\Roaming\Python\Python38\site-packages\flask_sqlalchemy\__init__.py:833: FSADeprecationWarning: SQLALCHEMY_TRACK_MODIFICATIONS adds significant overhead and will be disabled by default in the future.  Set it to True or False to suppress this warning.
+  warnings.warn(FSADeprecationWarning(
+>>> posts = Post.query.paginate(page = 6, per_page=1)
+>>> for page in posts.iter_pages():
+...     print(page)
+... 
+1   
+2   
+None
+4   
+5   
+6   
+7   
+8
+
+
+password reset using emails
+
+python
+Python 3.8.2 (tags/v3.8.2:7b3ab59, Feb 25 2020, 23:03:10) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+>>> s = Serializer('secret',30)
+>>> token = s.dumps({'user_id':1}).decode('utf-8')
+>>> token
+'eyJhbGciOiJIUzUxMiIsImlhdCI6MTYxMDgxNjQwNywiZXhwIjoxNjEwODE2NDM3fQ.eyJ1c2VyX2lkIjoxfQ.bRy3Wf3VFE-Ra1uygqijucT_aTx0xnmzyafYpaEDcGeCkDEN77HNlj-iSx9yiatZguj6SjmL6kFxja0LOOY6gw'
+>>> s.loads(token)
+{'user_id': 1}
+>>> s.loads(token)
+Traceback (most recent call last): #### error bcz we did access after 30 secs
+  File "<stdin>", line 1, in <module>
+  File "C:\Users\a\AppData\Roaming\Python\Python38\site-packages\itsdangerous\jws.py", line 202, in loads
+    raise SignatureExpired(
+itsdangerous.exc.SignatureExpired: Signature expired
+
+pip install flask-mail --user
+smtplib.SMTPAuthenticationError -- stackoverflow --select the setting to allow
+
+blueprint
